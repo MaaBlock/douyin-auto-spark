@@ -1,0 +1,10 @@
+{
+  "targets": [
+    "好友昵称1",
+    "好友昵称2",
+    "群聊名称"
+  ],
+  "message": "续火花",
+  "send_time": "08:30",
+  "headless": false
+}
