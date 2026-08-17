@@ -73,15 +73,21 @@ def load_config(is_actions=False):
 
     return cfg
 
-def save_secret_config(storage_state, cookies=None, targets=None, message=None):
+def save_secret_config(storage_state, targets=None, message=None):
     current_cfg = load_config()
+    # 过滤超大营销缓存（确保适配 GitHub Secret 64KB 大小限制）
+    if isinstance(storage_state, dict):
+        for orig in storage_state.get("origins", []):
+            orig["localStorage"] = [
+                item for item in orig.get("localStorage", [])
+                if item.get("name") not in ("LoginGuidingStrategy", "rawData")
+            ]
+
     secret_data = {
         "targets": targets if targets is not None else current_cfg.get("targets", []),
         "message": message if message is not None else current_cfg.get("message", "续火花"),
         "storage_state": storage_state
     }
-    if cookies:
-        secret_data["cookies"] = cookies
 
     json_str = json.dumps(secret_data, ensure_ascii=False, separators=(',', ':'))
     with open(SECRET_FILE, "w", encoding="utf-8") as f:

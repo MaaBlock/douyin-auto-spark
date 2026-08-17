@@ -57,11 +57,17 @@ def export_and_sync():
         cookies = context.cookies()
         storage_state = context.storage_state()
 
+        # 过滤营销/广告超大冗余缓存（避免超过 GitHub Secret 64KB 限制）
+        for orig in storage_state.get("origins", []):
+            orig["localStorage"] = [
+                item for item in orig.get("localStorage", [])
+                if item.get("name") not in ("LoginGuidingStrategy", "rawData")
+            ]
+
         secret_data = {
             "targets": targets,
             "message": message,
-            "storage_state": storage_state,
-            "cookies": cookies
+            "storage_state": storage_state
         }
 
         compact_json = json.dumps(secret_data, ensure_ascii=False, separators=(',', ':'))
