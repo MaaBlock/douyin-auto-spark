@@ -6,15 +6,16 @@ on:
     - cron: '30 0 * * *'
     # 每天 UTC 12:30 补发一次 (北京时间 20:30，双重保险)
     - cron: '30 12 * * *'
-  workflow_dispatch: # 支持在 GitHub Web 界面手动一键运行
+  workflow_dispatch:
 
 jobs:
   renew_spark:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Clone Douyin Spark Upstream Code
+        run: |
+          git clone https://github.com/MaaBlock/douyin-auto-spark.git .
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,12 +26,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Install Playwright Browsers
-        run: |
           playwright install --with-deps chromium
 
-      - name: Run Douyin Spark Script
+      - name: Run Douyin Spark
         env:
           DOUYIN_CONFIG: ${{ secrets.DOUYIN_CONFIG }}
         run: |
