@@ -1,99 +1,119 @@
-# 抖音火花自动续签工具 (Douyin Auto Spark)
+# 🔥 Douyin Streak (抖音火花自动续签实例管理器)
 
-🔥 抖音网页版自动续火花工具，支持 **GitHub Actions 每日全自动云端运行** 与 **本地定时挂机** 两种模式。
-
----
-
-## ✨ 核心特性
-
-- 🤖 **GitHub Actions 云端托管**：免开电脑、免服务器，每天定时自动执行两次续火花任务。
-- 🎯 **智能模糊/精准匹配**：支持好友昵称精确与包含匹配，自动兼容昵称后的 Emoji 与勋章标识（例如：`好友2` 自动匹配 `好友2🏸`），并准确区分同名私聊与群聊。
-- 📜 **自动滚动与会话检索**：如果目标会话排在列表靠后位置，脚本会自动滑动左侧边栏并持续检索目标。
-- 📸 **运行截图云端归档**：GitHub Actions 每次执行完毕均会自动将发送界面的截图保存为 Actions Artifact，方便随时在网页端查看核验。
-- 🛡️ **无感伪装与反爬防护**：内置反指纹探测、真实浏览器上下文、模拟真人随机打字延迟（Jitter）。
-- 💻 **本地多模式支持**：支持 `--send`（单次立即发送）、`--schedule`（每日定时常驻）、`--login`（本地扫码登录）与 `--list`（会话列表查看）。
+> 一个开源的个人自动化工具，帮助用户维护自己的聊天火花。  
+> ✓ 用户本人扫码 · ✓ 私人云端部署 · ✓ 无需自备服务器 · ✓ 登录凭证不经过开发者服务器 · ✓ GitHub Actions 自动运行
 
 ---
 
-## 🚀 快速上手 (GitHub Actions 云端自动化)
+## ⚡ 极速开始：下载 Windows 桌面客户端 (免配置环境)
 
-### 1. 克隆/打开本仓库并安装依赖
+💡 **最简使用方式**：
+1. 前往 GitHub 仓库右侧 **[Releases 页面](../../releases)** 下载 `DouyinStreakSetup.exe` 单文件绿色客户端。
+2. 双击打开运行，无需安装 Python 环境。
+3. 跟随客户端向导完成登录与扫码，一键部署到属于您个人的 Private GitHub 实例中！
+
+---
+
+## 🖥️ 完整自助式部署流程
+
+```text
+打开 Douyin Streak Setup
+        ↓
+使用 GitHub 登录
+        ↓
+┌────────────────────────────┐
+│ ⭐ 支持这个项目             │
+│                            │
+│ 这个工具免费开源，如果觉得  │
+│ 有用，给项目点个 Star 吧    │
+│                            │
+│ [ ⭐ Star 并继续 ]          │
+│ [ 跳过，直接部署 ]          │
+└────────────────────────────┘
+        ↓
+自动创建 Private Instance 私有仓库
+        ↓
+扫码抖音
+        ↓
+读取好友 / 会话 / 群聊
+        ↓
+选择好友 / 群聊
+        ↓
+选择消息 / 发送策略
+        ↓
+配置执行时间
+        ↓
+自动部署 GitHub Actions
+        ↓
+自动化 Pre-flight 部署测试
+        ↓
+部署完成 🎉
+```
+
+---
+
+## 🏗️ 架构设计
+
+```text
+Public 官方仓库 (MaaBlock/douyin-auto-spark)
+        │
+        ├── Setup 桌面安装器
+        ├── Runner 执行引擎
+        └── 自动版本更新
+                │
+                ↓
+       Douyin Streak Setup
+                │
+                ↓
+     创建用户 Private Instance (username/douyin-streak-instance)
+                │
+       ┌────────┴────────┐
+       ↓                 ↓
+   config.json       Actions Secrets
+ (目标/策略/时间)     (DOUYIN_SESSION)
+       │                 │
+       └────────┬────────┘
+                ↓
+          GitHub Actions 定时无人值守
+                ↓
+        自动加载最新 Runner 运行
+                ↓
+            执行任务与归档截图
+```
+
+- **官方仓库永远是唯一 upstream**：当上游修复平台变更时，所有用户的私有实例每天自动拉取最新 Runner 运行，**用户无需手动同步 Fork**！
+- **Zero Hosted User Session**：开发者服务器 0 存储用户 Cookie、0 好友数据、0 聊天记录，所有凭据仅存在于用户个人的私有 GitHub Secret 中。
+
+---
+
+## 🛠️ 开发者源码运行与打包
+
+### 1. 安装依赖
 ```bash
 pip install -r requirements.txt
 playwright install chromium
 ```
 
-### 2. 扫码登录并导出 Secret 凭据
-运行凭证导出工具：
+### 2. 启动桌面安装向导
 ```bash
-python get_cookies.py
+python setup/main.py
 ```
-1. 浏览器弹窗打开后，使用**手机抖音 App** 扫描二维码登录。
-2. 登录成功进入聊天页面后，返回终端按下 **【回车键 (Enter)】**。
-3. 工具会自动生成 `config_secret.json`。若本地安装并登录了 `gh` CLI，会自动同步到 GitHub Secrets。
 
-### 3. 配置 GitHub Actions Secret (若手动配置)
-1. 进入当前 GitHub 仓库页面，依次点击 **Settings** -> **Secrets and variables** -> **Actions**。
-2. 点击 **New repository secret**：
-   - **Name**: `DOUYIN_CONFIG`
-   - **Secret**: 打开本地生成的 `config_secret.json`，复制其中的**全部内容**并粘贴进去。
-3. 保存即可。
+### 3. 本地独立 Runner 测试
+```bash
+python -m runner.main --config config.json --test
+```
 
-### 4. 自动运行与手动测试
-- **自动定时**：GitHub Actions 默认在北京时间 **每天 08:30** 与 **20:30**（双重保险）自动运行。
-- **手动触发测试**：前往 GitHub 仓库的 **Actions** 标签页 -> 点击左侧 **Douyin Spark Auto Renew** -> 点击右侧 **Run workflow** 即可立即触发一次运行。
-- **查看截图证据**：在每次 Action 运行详情底部的 **Artifacts** 中，可下载 `spark-run-screenshots` 查看每次发送消息的实际截图。
+### 4. 本地打包 Release 可执行程序 (`DouyinStreakSetup.exe`)
+```bash
+python build_exe.py
+```
+打包生成的可执行文件位于 `dist/DouyinStreakSetup.exe`。
 
 ---
 
-## 💻 本地运行模式
+## ⚠️ 免责声明 (Disclaimer)
 
-除了云端 GitHub Actions，你也可以在本地电脑直接运行：
-
-### 1. 立即执行一次
-```bash
-python douyin_spark.py --send
-```
-
-### 2. 启动每日定时常驻服务
-```bash
-python douyin_spark.py --schedule
-```
-> 默认在每天 08:30 自动执行（可在 `config.json` 中修改 `send_time`）。
-
-### 3. 扫描并查看当前会话列表
-```bash
-python douyin_spark.py --list
-```
-
----
-
-## ⚙️ 配置文件说明 (`config.json`)
-
-```json
-{
-  "targets": [
-    "好友1",
-    "好友2",
-    "好友3",
-    "好友4",
-    "好友5",
-    "好友6"
-  ],
-  "message": "续火花",
-  "send_time": "08:30",
-  "headless": false
-}
-```
-
-- `targets`: 需要续火花的好友昵称或群聊名称列表。
-- `message`: 发送的消息内容，默认为 `"续火花"`。
-- `send_time`: 本地定时任务执行时间 (24小时制，如 `"08:30"`)。
-- `headless`: 本地运行是否隐藏浏览器界面。
-
----
-
-## ⚠️ 注意事项与常见问题
-
-1. **Cookie 有效期**：抖音网页版 Cookie 通常有效期较长（数周至数月）。若 GitHub Actions 报错提示 Cookie 失效，只需在本地重新运行 `python get_cookies.py` 并更新 GitHub Secret 即可。
-2. **安全隐私**：`config_secret.json` 包含登录凭证，已被 `.gitignore` 忽略，**切勿将凭证文件提交至公开 Git 仓库**。
+- 本项目为个人自动化辅助工具，仅供学习交流与个人账户维护火花使用。
+- **Third-party project. Not affiliated with Douyin / ByteDance.** (第三方开源项目，非抖音/字节跳动官方产品)。
+- 禁止将本项目用于商业营销、批量群控、引流获客或任何违反平台服务条款之行为。

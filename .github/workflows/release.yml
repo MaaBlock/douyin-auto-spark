@@ -1,0 +1,71 @@
+name: Build & Release Douyin Streak Setup
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag Name (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build_windows:
+    name: Build Windows Desktop App (.exe)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Build Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+          playwright install --with-deps chromium
+
+      - name: Build Executable with PyInstaller
+        run: |
+          python build_exe.py
+
+      - name: Verify Executable
+        run: |
+          Get-ChildItem -Path dist\
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
+          name: Douyin Streak Setup ${{ github.event.inputs.tag_name || github.ref_name }}
+          draft: false
+          prerelease: false
+          body: |
+            ## 🔥 Douyin Streak Setup 抖音火花自动续签实例管理器
+
+            ### 🚀 快速开始
+            1. 下载下方的 `DouyinStreakSetup.exe` 客户端。
+            2. 双击打开运行，无需配置 Python 环境！
+            3. 跟随原生桌面图形向导：
+               - 使用 GitHub 登录
+               - 扫码登录抖音
+               - 勾选续火花好友 / 群聊
+               - 选择消息与执行策略
+               - 自动在个人账号下创建 Private Instance 并写入加密凭据
+               - 自动 Pre-flight 测试通过后开启云端无人值守定时运行！
+
+            ### 📦 文件清单
+            - `DouyinStreakSetup.exe`: Windows 独立桌面端可执行程序
+          files: |
+            dist/DouyinStreakSetup.exe

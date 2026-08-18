@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Douyin Streak Setup - 抖音自动续火花一键部署</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Canvas Confetti for Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+              dark: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .glass-card {
+      background: rgba(19, 29, 49, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glow-effect {
+      box-shadow: 0 0 35px -5px rgba(244, 63, 94, 0.35);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(244, 63, 94, 0.4);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(244, 63, 94, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-rose-500 selection:text-white">
+
+<div id="app" class="max-w-4xl w-full mx-auto px-4 py-8 flex-1 flex flex-col">
+  <!-- Top Navigation / Brand Header -->
+  <header class="flex items-center justify-between pb-6 mb-8 border-b border-slate-800/80">
+    <div class="flex items-center space-x-3">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-rose-500/20">
+        🔥
+      </div>
+      <div>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+          Douyin Streak Setup
+        </h1>
+        <p class="text-xs text-slate-400">抖音火花全自动云端托管 · 小白一键部署向导</p>
+      </div>
+    </div>
+    
+    <!-- User Badge if logged in -->
+    <div v-if="githubUser" class="flex items-center space-x-3 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full">
+      <img :src="githubUser.avatar_url" class="w-6 h-6 rounded-full border border-slate-700" alt="Avatar" />
+      <span class="text-xs font-medium text-slate-300">👤 已连接: {{ githubUser.login }}</span>
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    </div>
+  </header>
+
+  <!-- Step Progress Indicator -->
+  <nav class="mb-10 overflow-x-auto pb-2 custom-scrollbar">
+    <div class="flex items-center justify-between min-w-[620px] text-xs">
+      <div v-for="(s, idx) in steps" :key="s.id" class="flex items-center flex-1">
+        <div class="flex flex-col items-center cursor-pointer transition-all" @click="canJumpTo(idx+1) ? currentStep = idx+1 : null">
+          <div :class="[
+            'w-8 h-8 rounded-xl flex items-center justify-center font-bold transition-all duration-300',
+            currentStep === idx + 1 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/40 ring-4 ring-rose-500/20 scale-105' :
+            currentStep > idx + 1 ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-500'
+          ]">
+            <span v-if="currentStep > idx + 1">✓</span>
+            <span v-else>{{ idx + 1 }}</span>
+          </div>
+          <span :class="[
+            'mt-2 font-medium transition-colors text-center text-[11px]',
+            currentStep === idx + 1 ? 'text-rose-400 font-semibold' :
+            currentStep > idx + 1 ? 'text-slate-300' : 'text-slate-600'
+          ]">
+            {{ s.title }}
+          </span>
+        </div>
+        <div v-if="idx < steps.length - 1" :class="[
+          'h-0.5 flex-1 mx-2 transition-all duration-300',
+          currentStep > idx + 1 ? 'bg-emerald-500/80' : 'bg-slate-800'
+        ]"></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container / Wizard Body -->
+  <main class="flex-1 flex flex-col justify-center">
+
+    <!-- STEP 1: GitHub 登录 (小白无障碍指引) -->
+    <section v-if="currentStep === 1" class="glass-card rounded-3xl p-8 border border-slate-800 glow-effect max-w-xl mx-auto w-full">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-slate-800/80 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-3 border border-slate-700">
+          ☁️
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">第一步：连接 GitHub 免费云端空间</h2>
+        <div class="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-left leading-relaxed">
+          💡 <strong>为什么需要这一步？</strong><br>
+          GitHub 为您提供免费的云端服务器，每天早晚会自动帮您续火花，您<strong>完全不用开电脑或手机</strong>！
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- 3步操作卡片 -->
+        <div class="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 text-xs space-y-2">
+          <div class="font-bold text-rose-400">👇 3 步傻瓜式获取 Token（仅需 10 秒）:</div>
+          <p class="text-slate-300">1. 点击下方按钮，将在新窗口打开 GitHub 授权页面</p>
+          <p class="text-slate-300">2. 页面已为您自动勾选好所有权限，直接滑到底部点击绿色按钮【Generate token】</p>
+          <p class="text-slate-300">3. 复制生成的代码并粘贴到下方输入框中即可</p>
+        </div>
+
+        <a
+          href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=Douyin-Auto-Spark-Setup"
+          target="_blank"
+          class="block text-center py-3 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/25 transition text-xs"
+        >
+          🔑 点击一键在浏览器打开 GitHub 生成页面 →
+        </a>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">在此粘贴 Token (以 ghp_ 开头):</label>
+          <input
+            v-model="githubToken"
+            :type="showToken ? 'text' : 'password'"
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-2xl text-xs focus:outline-none focus:border-rose-500 text-white"
+          />
+        </div>
+
+        <div v-if="authError" class="p-3 bg-rose-950/50 border border-rose-800/80 rounded-xl text-xs text-rose-300">
+          {{ authError }}
+        </div>
+
+        <button
+          @click="handleGitHubLogin"
+          :disabled="!githubToken || isAuthenticating"
+          class="w-full py-3.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold rounded-2xl transition text-xs flex items-center justify-center space-x-2"
+        >
+          <span v-if="isAuthenticating" class="inline-block animate-spin mr-2">⟳</span>
+          <span>{{ isAuthenticating ? '正在连接云端...' : '验证并继续 →' }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 2: ⭐ 支持这个项目 (Star Upstream Repo) -->
+    <section v-if="currentStep === 2" class="glass-card rounded-3xl p-8 border border-slate-800 max-w-lg mx-auto w-full text-center">
+      <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-3xl mx-auto flex items-center justify-center text-3xl mb-4 text-amber-400">
+        ⭐
+      </div>
+      <h2 class="text-2xl font-bold text-white mb-3">支持这个项目</h2>
+      <p class="text-slate-300 text-sm leading-relaxed mb-8 px-2">
+        这个工具完全免费且开源。如果觉得对您有帮助，不妨给项目点个 <strong class="text-amber-400">Star</strong> 吧！您的支持是我们持续免费维护的最大动力 ❤️
+      </p>
+
+      <div class="space-y-3">
+        <button
+          @click="handleStarAndContinue"
+          :disabled="isStarring"
+          class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition duration-200 flex items-center justify-center space-x-2"
+        >
+          <span v-if="isStarring" class="inline-block animate-spin mr-1">⟳</span>
+          <span>⭐ Star 并继续</span>
+        </button>
+
+        <button
+          @click="advanceToStep3"
+          class="w-full py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-medium rounded-2xl text-xs transition duration-200"
+        >
+          跳过，直接部署
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 3: 自动准备云端环境 -->
+    <section v-if="currentStep === 3" class="glass-card rounded-3xl p-8 border border-slate-800 max-w-xl mx-auto w-full text-center">
+      <div class="mb-6">
+        <div class="w-14 h-14 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-3 text-indigo-400">
+          📦
+        </div>
+        <h2 class="text-xl font-bold text-white mb-1">正在全自动准备您的专属云端空间</h2>
+        <p class="text-xs text-slate-400">代码和凭证仅存放在您自己的 GitHub 私有空间中，全自动部署，无需手动操作...</p>
+      </div>
+
+      <div class="w-full bg-slate-900 rounded-full h-3 mb-6 overflow-hidden border border-slate-800">
+        <div class="bg-gradient-to-r from-rose-500 to-indigo-500 h-3 rounded-full transition-all duration-500" :style="{ width: step3Progress + '%' }"></div>
+      </div>
+
+      <div v-if="deployLogs.length > 0" class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 mb-6 font-mono text-[11px] space-y-1.5 text-slate-400 max-h-36 overflow-y-auto custom-scrollbar text-left">
+        <div v-for="(log, idx) in deployLogs" :key="idx" class="flex items-center space-x-2">
+          <span class="text-emerald-400">✔</span>
+          <span>{{ log }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 4: 扫码抖音 -->
+    <section v-if="currentStep === 4" class="glass-card rounded-3xl p-8 border border-slate-800 max-w-xl mx-auto w-full text-center">
+      <div class="mb-4">
+        <h2 class="text-xl font-bold text-white mb-2">📱 扫码登录抖音</h2>
+        <div class="inline-block bg-rose-950/80 border border-rose-800 text-rose-300 text-xs px-3 py-1.5 rounded-xl font-medium">
+          1. 打开手机抖音 App 👉 2. 点右上角【扫一扫】 👉 3. 扫描屏幕并点击确认
+        </div>
+      </div>
+
+      <!-- QR Code Display Area -->
+      <div class="relative w-64 h-64 mx-auto mb-6 bg-slate-900 border-2 border-dashed border-slate-700 rounded-3xl flex items-center justify-center overflow-hidden group">
+        <img
+          v-if="douyinState.qrcode"
+          :src="douyinState.qrcode"
+          class="w-full h-full object-contain p-2 bg-white rounded-2xl transition duration-300"
+          alt="抖音登录二维码"
+        />
+        <div v-else class="flex flex-col items-center space-y-2 p-4 text-slate-500 text-xs">
+          <div class="animate-spin text-2xl text-rose-500">⟳</div>
+          <span>{{ douyinState.message || '正在生成登录二维码...' }}</span>
+        </div>
+
+        <div v-if="douyinState.status === 'logged_in'" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center text-emerald-400 text-sm font-semibold space-y-2">
+          <span class="text-3xl">🎉</span>
+          <span>扫码成功！正在自动读取好友列表...</span>
+        </div>
+      </div>
+
+      <!-- Status Pill -->
+      <div class="inline-flex items-center space-x-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-full text-xs text-slate-300 mb-6">
+        <span class="w-2.5 h-2.5 rounded-full" :class="douyinState.status === 'ready' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'"></span>
+        <span>{{ douyinState.message || '等待扫码中...' }}</span>
+      </div>
+
+      <div class="flex items-center justify-center space-x-4">
+        <button
+          @click="startDouyinLogin(false)"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl transition"
+        >
+          🔄 刷新二维码
+        </button>
+        <button
+          @click="useExistingCredentials"
+          class="px-4 py-2 bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium rounded-xl transition"
+        >
+          ⚡ 使用本地已有凭证 (跳过扫码)
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 5: 勾选好友 -->
+    <section v-if="currentStep === 5" class="glass-card rounded-3xl p-8 border border-slate-800 flex flex-col flex-1">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-white">👥 勾选想要每天自动续火花的好友</h2>
+          <p class="text-xs text-slate-400">已从您的抖音账号中读取到 {{ contacts.length }} 个好友/群聊</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button @click="selectAllContacts(true)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl font-medium">全选</button>
+          <button @click="selectAllContacts(false)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs rounded-xl font-medium">清空</button>
+          <span class="text-xs font-bold text-rose-400 bg-rose-950/80 border border-rose-800/80 px-3 py-1.5 rounded-xl">
+            已选择 {{ selectedCount }} 位好友
+          </span>
+        </div>
+      </div>
+
+      <!-- Search & Custom Add Bar -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="relative flex-1">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="🔍 快速搜索好友昵称..."
+            class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+          />
+        </div>
+        <div class="flex items-center space-x-2">
+          <input
+            v-model="customTargetInput"
+            @keyup.enter="addCustomTarget"
+            type="text"
+            placeholder="手动添加昵称"
+            class="w-36 md:w-44 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+          />
+          <button @click="addCustomTarget" class="px-3 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-xl whitespace-nowrap">
+            + 添加
+          </button>
+        </div>
+      </div>
+
+      <!-- Contact Cards List -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto max-h-[360px] custom-scrollbar p-1 mb-6">
+        <div
+          v-for="(c, idx) in filteredContacts"
+          :key="c.name"
+          @click="c.selected = !c.selected"
+          :class="[
+            'p-3.5 rounded-2xl border transition duration-200 cursor-pointer flex items-center justify-between',
+            c.selected ? 'bg-rose-950/30 border-rose-500/60 shadow-md shadow-rose-950/50' : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700'
+          ]"
+        >
+          <div class="flex items-center space-x-3 overflow-hidden">
+            <div :class="[
+              'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0',
+              c.selected ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'
+            ]">
+              {{ c.name.charAt(0) }}
+            </div>
+            <div class="overflow-hidden">
+              <div class="text-xs font-semibold text-slate-200 truncate">{{ c.name }}</div>
+              <div class="text-[10px] text-slate-500 truncate">{{ c.preview || '暂无预览消息' }}</div>
+            </div>
+          </div>
+          <div :class="[
+            'w-5 h-5 rounded-lg border flex items-center justify-center text-xs font-bold transition-all',
+            c.selected ? 'bg-rose-500 border-rose-500 text-white' : 'border-slate-700 bg-slate-800/50'
+          ]">
+            <span v-if="c.selected">✓</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-4 border-t border-slate-800">
+        <button @click="currentStep = 4" class="px-4 py-2.5 bg-slate-800 text-slate-400 hover:text-slate-200 text-xs rounded-xl">上一步</button>
+        <button
+          @click="currentStep = 6"
+          :disabled="selectedCount === 0"
+          class="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-lg shadow-rose-600/30 transition"
+        >
+          下一步: 发送策略 (已选 {{ selectedCount }} 位) →
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 6: 选择消息 / 发送策略 (新手默认最佳推荐) -->
+    <section v-if="currentStep === 6" class="glass-card rounded-3xl p-8 border border-slate-800 flex flex-col flex-1 max-w-2xl mx-auto w-full">
+      <div class="mb-6 text-center">
+        <h2 class="text-xl font-bold text-white mb-1">💬 选择续火花发送文案与策略</h2>
+        <p class="text-xs text-slate-400">已默认帮您选择最佳防封文案库与早晚双重定时</p>
+      </div>
+
+      <div class="space-y-6 mb-8 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-2">文案生成风格:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              v-for="m in messageModes"
+              :key="m.id"
+              @click="selectedMessageMode = m.id"
+              :class="[
+                'p-2.5 rounded-xl border text-center transition font-medium',
+                selectedMessageMode === m.id ? 'bg-rose-500/20 border-rose-500 text-rose-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+              ]"
+            >
+              {{ m.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode 1: 随机文案池 (Recommended) -->
+        <div v-if="selectedMessageMode === 'random_pool'" class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between text-slate-300 font-medium">
+            <span>🎲 智能随机文案库 (每天早晚随机换一句，真实自然)</span>
+            <span class="text-[10px] text-emerald-400">🛡️ 防重复不当复读机</span>
+          </div>
+          <div class="space-y-2">
+            <div v-for="(msg, idx) in messagePool" :key="idx" class="flex items-center space-x-2">
+              <input
+                v-model="messagePool[idx]"
+                class="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-rose-500"
+              />
+              <button @click="messagePool.splice(idx, 1)" class="text-slate-500 hover:text-rose-400 px-2">✕</button>
+            </div>
+            <button @click="messagePool.push('🔥 续火花')" class="text-rose-400 hover:text-rose-300 text-xs font-medium pt-1">
+              + 添加一条文案
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode 2: 经典单一文案 -->
+        <div v-if="selectedMessageMode === 'single'" class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3">
+          <label class="block font-medium text-slate-300">固定发送的内容:</label>
+          <input
+            v-model="singleMessage"
+            class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-rose-500"
+            placeholder="续火花 🔥"
+          />
+        </div>
+
+        <!-- Schedule & Trigger Option -->
+        <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-medium text-slate-300">⏰ 云端自动定时计划:</span>
+            <span class="text-emerald-400 font-bold">每天 08:30 & 20:30 (早晚双重保险)</span>
+          </div>
+          <label class="flex items-center space-x-2 text-slate-300 cursor-pointer pt-1">
+            <input type="checkbox" v-model="triggerImmediate" class="rounded text-rose-500 focus:ring-rose-500 bg-slate-950 border-slate-700" />
+            <span>部署完成后立即在云端触发一次测试运行 (验证是否发送成功)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-4 border-t border-slate-800">
+        <button @click="currentStep = 5" class="px-4 py-2.5 bg-slate-800 text-slate-400 hover:text-slate-200 text-xs rounded-xl">上一步</button>
+        <button
+          @click="handleFinalDeploy"
+          :disabled="isDeploying"
+          class="px-8 py-3.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 disabled:opacity-50 text-white font-bold text-sm rounded-2xl shadow-lg shadow-rose-500/30 transition flex items-center space-x-2"
+        >
+          <span v-if="isDeploying" class="inline-block animate-spin mr-1">⟳</span>
+          <span>{{ isDeploying ? '正在加密并开启云端工作流...' : '🚀 立即开启全自动云端托管' }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 7: 部署完成 + 小白常见疑问解答 🎉 -->
+    <section v-if="currentStep === 7" class="glass-card rounded-3xl p-8 border border-slate-800 max-w-xl mx-auto w-full text-center">
+      <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl mx-auto flex items-center justify-center text-3xl mb-4 text-emerald-400">
+        🎉
+      </div>
+      <h2 class="text-2xl font-bold text-white mb-2">恭喜！全自动云端续火花已开启！</h2>
+      <p class="text-xs text-slate-400 mb-6">从现在起，每天早晚云端会自动替您向好友发送续火花消息，您无需打开电脑或手机！</p>
+
+      <div class="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 space-y-2.5 mb-6 text-xs text-left">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">📦 专属私有空间:</span>
+          <span class="text-rose-400 font-mono font-medium">{{ githubUser?.login }}/{{ repoName }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">👥 续火花目标数:</span>
+          <span class="text-slate-200 font-medium">{{ selectedCount }} 位好友/群聊</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">⏰ 每日定时运行:</span>
+          <span class="text-emerald-400 font-bold">每天 08:30 / 20:30 (北京时间)</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">📸 现场截图证据:</span>
+          <span class="text-slate-300">自动在 GitHub Actions 归档</span>
+        </div>
+      </div>
+
+      <!-- FAQ Box -->
+      <div class="bg-slate-900/60 rounded-2xl p-4 border border-slate-800 text-xs text-left space-y-2 mb-6 text-slate-300">
+        <div class="font-bold text-rose-400">💡 常见疑问解答:</div>
+        <p><strong>Q: 电脑关机了还会自动发吗？</strong><br>A: 会！任务在 GitHub 云端服务器执行，电脑关机断网丝毫不受影响。</p>
+        <p><strong>Q: 以后想换好友或改文案怎么办？</strong><br>A: 随时重新打开这个向导，勾选新好友并点确定即可更新。</p>
+      </div>
+
+      <div class="space-y-3">
+        <a
+          :href="deployResult?.actions_url"
+          target="_blank"
+          class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-slate-950 font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2 text-sm"
+        >
+          <span>🔍 前往 GitHub 查看云端运行与截图 ↗</span>
+        </a>
+
+        <button
+          @click="triggerWorkflowAgain"
+          :disabled="isRetriggering"
+          class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-2xl transition"
+        >
+          {{ isRetriggering ? '正在触发测试运行...' : '🧪 立即测试发送一次' }}
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center pt-8 text-[11px] text-slate-600">
+    <p>Douyin Auto Spark · Open Source with MIT License · Made with ❤️</p>
+  </footer>
+</div>
+
+<script>
+  const { createApp } = Vue;
+
+  createApp({
+    data() {
+      return {
+        currentStep: 1,
+        steps: [
+          { id: 1, title: '连接云端' },
+          { id: 2, title: '支持项目⭐' },
+          { id: 3, title: '准备环境' },
+          { id: 4, title: '扫码抖音' },
+          { id: 5, title: '勾选好友' },
+          { id: 6, title: '发送策略' },
+          { id: 7, title: '开启成功🎉' }
+        ],
+        githubToken: '',
+        showToken: false,
+        isAuthenticating: false,
+        authError: null,
+        githubUser: null,
+
+        isStarring: false,
+        repoName: 'douyin-auto-spark',
+        step3Progress: 30,
+        deployLogs: [],
+
+        douyinState: {
+          status: 'idle',
+          message: '',
+          qrcode: null
+        },
+        pollInterval: null,
+
+        contacts: [],
+        searchQuery: '',
+        customTargetInput: '',
+
+        selectedMessageMode: 'random_pool',
+        messageModes: [
+          { id: 'random_pool', label: '🎲 推荐智能随机文案库 (防重复)' },
+          { id: 'single', label: '💬 固定统一文案' }
+        ],
+        messagePool: [
+          '续火花 🔥',
+          '🔥',
+          '滴滴续火花~',
+          '今日火花打卡✨',
+          '{greeting}，{name}，续火花啦☀️'
+        ],
+        singleMessage: '续火花 🔥',
+        triggerImmediate: true,
+        isDeploying: false,
+        deployResult: null,
+        isRetriggering: false
+      };
+    },
+    computed: {
+      filteredContacts() {
+        if (!this.searchQuery.trim()) return this.contacts;
+        const q = this.searchQuery.toLowerCase();
+        return this.contacts.filter(c => c.name.toLowerCase().includes(q) || (c.preview && c.preview.toLowerCase().includes(q)));
+      },
+      selectedCount() {
+        return this.contacts.filter(c => c.selected).length;
+      }
+    },
+    methods: {
+      canJumpTo(target) {
+        if (target < this.currentStep) return true;
+        if (target === 2 && this.githubUser) return true;
+        return false;
+      },
+      async handleGitHubLogin() {
+        if (!this.githubToken) return;
+        this.isAuthenticating = true;
+        this.authError = null;
+        try {
+          const res = await fetch('/api/github/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: this.githubToken })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            this.githubUser = data.user;
+            this.currentStep = 2; // Jump to Step 2: Star Project
+          } else {
+            this.authError = data.error || 'GitHub 验证失败，请检查 Token 权限';
+          }
+        } catch (e) {
+          this.authError = '网络请求异常: ' + e.message;
+        } finally {
+          this.isAuthenticating = false;
+        }
+      },
+      async handleStarAndContinue() {
+        this.isStarring = true;
+        try {
+          await fetch('/api/github/star', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: this.githubToken })
+          });
+        } catch (e) {}
+        this.isStarring = false;
+        this.advanceToStep3();
+      },
+      advanceToStep3() {
+        this.currentStep = 3;
+        this.handleAutoDeployEnvironment();
+      },
+      async handleAutoDeployEnvironment() {
+        this.step3Progress = 40;
+        this.deployLogs = ['正在连接 GitHub API...'];
+        try {
+          const res = await fetch('/api/github/create_repo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: this.githubToken, repo_name: this.repoName })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            this.step3Progress = 100;
+            this.deployLogs.push(`✅ 专属私有空间已就绪: ${data.repo.full_name}`);
+            this.deployLogs.push('✅ 自动续火花脚本已配置完毕！即将进入扫码步骤...');
+            setTimeout(() => {
+              this.currentStep = 4;
+              this.startDouyinLogin(true);
+            }, 800);
+          } else {
+            alert('配置失败: ' + data.error);
+          }
+        } catch (e) {
+          alert('异常: ' + e.message);
+        }
+      },
+      async startDouyinLogin(auto = false) {
+        this.douyinState.status = 'launching';
+        this.douyinState.message = '正在拉起浏览器并获取登录二维码...';
+        try {
+          await fetch('/api/douyin/start_login', { method: 'POST' });
+          this.startPollingDouyinStatus();
+        } catch (e) {
+          this.douyinState.message = '启动异常: ' + e.message;
+        }
+      },
+      async useExistingCredentials() {
+        try {
+          const res = await fetch('/api/douyin/use_existing', { method: 'POST' });
+          const data = await res.json();
+          if (data.ok) {
+            this.contacts = data.contacts;
+            this.currentStep = 5;
+          } else {
+            alert(data.error || '未找到有效凭证');
+          }
+        } catch (e) {
+          alert('异常: ' + e.message);
+        }
+      },
+      startPollingDouyinStatus() {
+        if (this.pollInterval) clearInterval(this.pollInterval);
+        this.pollInterval = setInterval(async () => {
+          try {
+            const res = await fetch('/api/douyin/status');
+            const data = await res.json();
+            this.douyinState = data;
+            if (data.status === 'ready' && data.contacts && data.contacts.length > 0) {
+              clearInterval(this.pollInterval);
+              this.contacts = data.contacts;
+              setTimeout(() => {
+                this.currentStep = 5;
+              }, 1000);
+            }
+          } catch (e) {}
+        }, 1500);
+      },
+      selectAllContacts(val) {
+        this.contacts.forEach(c => c.selected = val);
+      },
+      addCustomTarget() {
+        const name = this.customTargetInput.trim();
+        if (!name) return;
+        if (!this.contacts.some(c => c.name === name)) {
+          this.contacts.unshift({ name: name, preview: '手动添加好友', selected: true });
+        }
+        this.customTargetInput = '';
+      },
+      async handleFinalDeploy() {
+        this.isDeploying = true;
+        const selectedTargets = this.contacts.filter(c => c.selected).map(c => {
+          if (c.custom_message) {
+            return { name: c.name, message: c.custom_message };
+          }
+          return c.name;
+        });
+
+        const payload = {
+          token: this.githubToken,
+          repo_full_name: `${this.githubUser.login}/${this.repoName}`,
+          targets: selectedTargets,
+          message: this.singleMessage,
+          messages: this.selectedMessageMode === 'random_pool' ? this.messagePool : null,
+          send_time: '08:30',
+          trigger_now: this.triggerImmediate
+        };
+
+        try {
+          const res = await fetch('/api/deploy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.ok) {
+            this.deployResult = data;
+            this.currentStep = 7;
+            if (window.confetti) {
+              confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+          } else {
+            alert('开启失败: ' + data.error);
+          }
+        } catch (e) {
+          alert('部署请求异常: ' + e.message);
+        } finally {
+          this.isDeploying = false;
+        }
+      },
+      async triggerWorkflowAgain() {
+        this.isRetriggering = true;
+        try {
+          const res = await fetch('/api/trigger_workflow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token: this.githubToken,
+              repo_full_name: `${this.githubUser.login}/${this.repoName}`
+            })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            alert('🎉 成功触发云端测试运行！稍等 1-2 分钟即可在 GitHub 看到发送截图。');
+          } else {
+            alert('触发失败: ' + data.error);
+          }
+        } catch (e) {
+          alert('异常: ' + e.message);
+        } finally {
+          this.isRetriggering = false;
+        }
+      }
+    },
+    beforeUnmount() {
+      if (this.pollInterval) clearInterval(this.pollInterval);
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>

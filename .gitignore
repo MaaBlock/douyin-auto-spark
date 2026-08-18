@@ -16,3 +16,8 @@ __pycache__/
 .pytest_cache/
 .vscode/
 .idea/
+
+# 打包构建产物
+build/
+dist/
+*.spec

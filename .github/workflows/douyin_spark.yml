@@ -1,4 +1,4 @@
-name: Douyin Spark Auto Renew
+name: Douyin Streak Auto Renew
 
 on:
   schedule:
@@ -7,15 +7,19 @@ on:
     # 每天 UTC 12:30 补发一次 (北京时间 20:30，双重保险)
     - cron: '30 12 * * *'
   workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode (1: test only, 0: normal send)'
+        required: false
+        default: '0'
 
 jobs:
   renew_spark:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone Douyin Spark Upstream Code
-        run: |
-          git clone https://github.com/MaaBlock/douyin-auto-spark.git .
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,11 +32,13 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
-      - name: Run Douyin Spark
+      - name: Run Douyin Streak Task
         env:
+          DOUYIN_SESSION: ${{ secrets.DOUYIN_SESSION }}
           DOUYIN_CONFIG: ${{ secrets.DOUYIN_CONFIG }}
+          TEST_MODE: ${{ inputs.test_mode || '0' }}
         run: |
-          python douyin_spark.py --actions
+          python -m runner.main --config config.json --actions
 
       - name: Upload Run Screenshots
         uses: actions/upload-artifact@v4

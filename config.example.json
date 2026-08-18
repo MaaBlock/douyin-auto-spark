@@ -2,9 +2,19 @@
   "targets": [
     "好友昵称1",
     "好友昵称2",
-    "群聊名称"
+    {
+      "name": "特别好友",
+      "message": "{greeting}！专属火花打卡🔥"
+    }
   ],
-  "message": "续火花",
+  "message": "续火花 🔥",
+  "messages": [
+    "续火花 🔥",
+    "🔥",
+    "滴滴续火花~",
+    "今日火花打卡✨",
+    "{greeting}，{name}，续火花啦☀️"
+  ],
   "send_time": "08:30",
   "headless": false
 }
