@@ -1,13 +1,22 @@
 {
-  "targets": [
-    "好友1",
-    "好友2",
-    "好友3",
-    "好友4",
-    "好友5",
-    "好友6"
-  ],
-  "message": "续火花",
-  "send_time": "08:30",
-  "headless": false
+  "schema_version": 1,
+  "targets": [],
+  "messages": {
+    "mode": "random",
+    "values": [
+      "续火花🔥",
+      "🔥",
+      "滴滴",
+      "每日打卡"
+    ]
+  },
+  "strategy": {
+    "mode": "daily",
+    "max_messages_per_run": 20
+  },
+  "schedule": {
+    "hour": 22,
+    "minute": 30,
+    "timezone": "Asia/Shanghai"
+  }
 }

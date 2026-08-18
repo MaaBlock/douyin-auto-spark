@@ -1,20 +1,33 @@
 {
+  "schema_version": 1,
   "targets": [
-    "好友昵称1",
-    "好友昵称2",
     {
-      "name": "特别好友",
-      "message": "{greeting}！专属火花打卡🔥"
+      "type": "private",
+      "id": "conversation_123",
+      "name": "好友昵称1"
+    },
+    {
+      "type": "group",
+      "id": "group_456",
+      "name": "群聊名称"
     }
   ],
-  "message": "续火花 🔥",
-  "messages": [
-    "续火花 🔥",
-    "🔥",
-    "滴滴续火花~",
-    "今日火花打卡✨",
-    "{greeting}，{name}，续火花啦☀️"
-  ],
-  "send_time": "08:30",
-  "headless": false
+  "messages": {
+    "mode": "random",
+    "values": [
+      "续火花🔥",
+      "🔥",
+      "滴滴",
+      "每日打卡"
+    ]
+  },
+  "strategy": {
+    "mode": "daily",
+    "max_messages_per_run": 20
+  },
+  "schedule": {
+    "hour": 22,
+    "minute": 30,
+    "timezone": "Asia/Shanghai"
+  }
 }

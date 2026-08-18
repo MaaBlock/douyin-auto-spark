@@ -278,7 +278,7 @@ def find_target_card(page, target_name):
                 }
             }
 
-            // 2. 包含匹配（处理带 emoji 或标签，如 好友2 -> 好友2🏸）
+            // 2. 包含匹配（处理带 emoji 或标签，如 好友昵称 -> 好友昵称🏸）
             for (const c of candidates) {
                 if (c.name.includes(target) || target.includes(c.name)) {
                     return { x: c.x, y: c.y, name: c.name, match: 'contains' };
